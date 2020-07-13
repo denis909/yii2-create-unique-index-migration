@@ -17,20 +17,52 @@ abstract class CreateUniqueIndexMigration extends \denis909\yii\Migration
 
     public $uniqualize = true;
 
+    public $uniqualizeFirst = true;
+
+    public function init()
+    {
+        parent::init();
+
+        Assert::notEmpty($this->tableName);
+
+        Assert::notEmpty($this->primaryKey);
+    
+        Assert::notEmpty($this->indexName);
+
+        Assert::notEmpty($this->attributeName);
+    }
+
+    public function updateRow(array $row)
+    {
+        $where = [$this->primaryKey => $row[$this->primaryKey]];
+
+        Yii::$app->db
+            ->createCommand()
+            ->update(
+                $this->tableName, 
+                [
+                    $this->attributeName => $row[$this->attributeName] 
+                ], 
+                $where
+            )->execute();
+    }
+
     /**
      * {@inheritdoc}
      */
     public function safeUp()
     {
+        $modelClass = $this->modelClass;
+
         if ($this->uniqualize)
         {
             $uniqueNames = [];
 
             $subquery = new Query;
 
-            $subquery->select($this->attributeName);
-
             $subquery->from($this->tableName);
+
+            $subquery->select($this->attributeName);
 
             $subquery->groupBy($this->attributeName);
 
@@ -49,7 +81,12 @@ abstract class CreateUniqueIndexMigration extends \denis909\yii\Migration
 
                 $uniqueNames[$row[$this->attributeName]]++;
 
-                $row[$this->attributeName] = $row[$this->attributeName] . ' #' . $uniqueNames[$row[$this->attributeName]];
+                if ($uniqueNames[$row[$this->attributeName]] > ($this->uniqualizeFirst ? 0 : 1))
+                {
+                    $row[$this->attributeName] = $row[$this->attributeName] . ' #' . $uniqueNames[$row[$this->attributeName]];
+
+                    $this->updateRow($row);
+                }
             }
         }
 
