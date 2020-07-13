@@ -20,6 +20,8 @@ abstract class CreateUniqueIndexMigration extends \denis909\yii\Migration
 
     public $uniqualizeFirst = true;
 
+    public $template = '%attribute #%i';
+
     public function init()
     {
         parent::init();
@@ -91,7 +93,10 @@ abstract class CreateUniqueIndexMigration extends \denis909\yii\Migration
 
                 if ($uniqueNames[$row[$this->attributeName]] > ($this->uniqualizeFirst ? 0 : 1))
                 {
-                    $row[$this->attributeName] = $row[$this->attributeName] . ' #' . $uniqueNames[$row[$this->attributeName]];
+                    $row[$this->attributeName] = strtr($this->template, [
+                        '%i' => $uniqueNames[$row[$this->attributeName]],
+                        '%attribute' => $row[$this->attributeName]
+                    ]);
 
                     $this->updateRow($row);
                 }
