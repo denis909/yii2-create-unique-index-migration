@@ -11,7 +11,7 @@ abstract class CreateUniqueIndexMigration extends \denis909\yii\Migration
 
     public $primaryKey;
 
-    public $indexAttribute;
+    public $attributeName;
 
     public $indexName;
 
@@ -28,24 +28,28 @@ abstract class CreateUniqueIndexMigration extends \denis909\yii\Migration
 
             $subquery = new Query;
 
+            $subquery->select($this->attributeName);
+
             $subquery->from($this->tableName);
+
+            $subquery->groupBy($this->attributeName);
 
             $query = new Query;
 
             $query->from($this->tableName);
 
-            $query->where(['in', $this->attribute, $subquery]);
+            $query->where(['in', $this->attributeName, $subquery]);
 
             foreach($query->all() as $row)
             {
-                if (!array_key_exists($row[$indexAttribute], $uniqueNames))
+                if (!array_key_exists($row[$this->attributeName], $uniqueNames))
                 {
-                    $uniqueNames[$row[$indexAttribute]] = 0;
+                    $uniqueNames[$row[$this->attributeName]] = 0;
                 }
 
-                $uniqueNames[$row[$indexAttribute]]++;
+                $uniqueNames[$row[$this->attributeName]]++;
 
-                $row[$indexAttribute] = $row[$indexAttribute] . ' #' . $uniqueNames[$row[$indexAttribute]];
+                $row[$this->attributeName] = $row[$this->attributeName] . ' #' . $uniqueNames[$row[$this->attributeName]];
             }
         }
 
