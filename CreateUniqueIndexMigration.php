@@ -2,6 +2,7 @@
 
 namespace denis909\yii;
 
+use Yii;
 use denis909\yii\UniqualizeBehavior;
 use yii\db\Query;
 use denis909\yii\Assert;
@@ -23,13 +24,34 @@ abstract class CreateUniqueIndexMigration extends \denis909\yii\Migration
     {
         parent::init();
 
-        Assert::notEmpty($this->tableName);
+        $class = get_called_class();
 
-        Assert::notEmpty($this->primaryKey);
+        Assert::notEmpty($this->tableName, $class . '::tableName is not defined.');
+
+        Assert::notEmpty($this->primaryKey, $class . '::primaryKey is not defined.');
     
-        Assert::notEmpty($this->indexName);
+        Assert::notEmpty($this->indexName, $class . '::indexName is not defined.');
 
-        Assert::notEmpty($this->attributeName);
+        Assert::notEmpty($this->attributeName, $class . '::attributeName is not defined.');
+    }
+
+    public function findDupes()
+    {
+        $subquery = new Query;
+
+        $subquery->from($this->tableName);
+
+        $subquery->select($this->attributeName);
+
+        $subquery->groupBy($this->attributeName);
+
+        $query = new Query;
+
+        $query->from($this->tableName);
+
+        $query->where(['in', $this->attributeName, $subquery]);
+
+        return $query->all();
     }
 
     public function updateRow(array $row)
@@ -52,34 +74,20 @@ abstract class CreateUniqueIndexMigration extends \denis909\yii\Migration
      */
     public function safeUp()
     {
-        $modelClass = $this->modelClass;
-
         if ($this->uniqualize)
         {
             $uniqueNames = [];
 
-            $subquery = new Query;
-
-            $subquery->from($this->tableName);
-
-            $subquery->select($this->attributeName);
-
-            $subquery->groupBy($this->attributeName);
-
-            $query = new Query;
-
-            $query->from($this->tableName);
-
-            $query->where(['in', $this->attributeName, $subquery]);
-
-            foreach($query->all() as $row)
+            foreach($this->findDupes() as $row)
             {
                 if (!array_key_exists($row[$this->attributeName], $uniqueNames))
                 {
-                    $uniqueNames[$row[$this->attributeName]] = 0;
+                    $uniqueNames[$row[$this->attributeName]] = 1;
                 }
-
-                $uniqueNames[$row[$this->attributeName]]++;
+                else
+                {
+                    $uniqueNames[$row[$this->attributeName]]++;
+                }
 
                 if ($uniqueNames[$row[$this->attributeName]] > ($this->uniqualizeFirst ? 0 : 1))
                 {
@@ -90,7 +98,7 @@ abstract class CreateUniqueIndexMigration extends \denis909\yii\Migration
             }
         }
 
-        $this->createIndex($this->indexPrefix . $this->indexName,  $this->tableName, $this->indexAttributes, true);
+        $this->createIndex($this->getIndexName($this->indexName),  $this->tableName, $this->attributeName, true);
     }
 
     /**
@@ -98,7 +106,7 @@ abstract class CreateUniqueIndexMigration extends \denis909\yii\Migration
      */
     public function safeDown()
     {
-        $this->dropIndex($this->indexPrefix . $this->indexName, $this->tableName);
-    } 
+        $this->dropIndex($this->getIndexName($this->indexName), $this->tableName);
+    }
 
 }
