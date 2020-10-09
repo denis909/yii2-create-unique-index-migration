@@ -103,7 +103,7 @@ abstract class CreateUniqueIndexMigration extends \denis909\yii\Migration
             }
         }
 
-        $this->createIndex($this->getIndexName($this->indexName),  $this->tableName, $this->attributeName, true);
+        $this->createIndex($this->indexName($this->indexName),  $this->tableName, $this->attributeName, true);
     }
 
     /**
@@ -111,7 +111,7 @@ abstract class CreateUniqueIndexMigration extends \denis909\yii\Migration
      */
     public function safeDown()
     {
-        $this->dropIndex($this->getIndexName($this->indexName), $this->tableName);
+        $this->dropIndex($this->indexName($this->indexName), $this->tableName);
     }
 
 }
